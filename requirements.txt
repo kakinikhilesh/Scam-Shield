@@ -1,0 +1,10 @@
+
+flask
+torch
+transformers
+tokenizers
+safetensors
+numpy
+pandas
+scikit-learn
+accelerate
