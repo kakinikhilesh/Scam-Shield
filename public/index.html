@@ -1,0 +1,342 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ScamShield AI | Scam Detection</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #0b1220;
+      color: #e5e7eb;
+      min-height: 100vh;
+    }
+
+    header {
+      padding: 25px;
+      text-align: center;
+      background: #111c30;
+      border-bottom: 1px solid #263449;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 32px;
+      color: #60a5fa;
+    }
+
+    header p {
+      color: #94a3b8;
+    }
+
+    main {
+      max-width: 800px;
+      margin: 45px auto;
+      padding: 0 20px;
+    }
+
+    .card {
+      background: #172338;
+      border: 1px solid #2b3d55;
+      border-radius: 16px;
+      padding: 28px;
+      margin-bottom: 22px;
+    }
+
+    h2 {
+      margin-top: 0;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 190px;
+      padding: 16px;
+      border-radius: 10px;
+      border: 1px solid #41516a;
+      background: #0b1220;
+      color: white;
+      font-size: 15px;
+      resize: vertical;
+      line-height: 1.6;
+    }
+
+    textarea:focus {
+      outline: 2px solid #60a5fa;
+    }
+
+    button {
+      margin-top: 18px;
+      width: 100%;
+      padding: 15px;
+      border: none;
+      border-radius: 10px;
+      background: #2563eb;
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #1d4ed8;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: wait;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .status {
+      font-size: 25px;
+      font-weight: bold;
+      margin-bottom: 14px;
+    }
+
+    .scam {
+      color: #f87171;
+    }
+
+    .warning {
+      color: #fbbf24;
+    }
+
+    .safe {
+      color: #4ade80;
+    }
+
+    .score {
+      margin: 15px 0;
+      color: #cbd5e1;
+    }
+
+    .progress {
+      width: 100%;
+      height: 13px;
+      border-radius: 20px;
+      background: #334155;
+      overflow: hidden;
+    }
+
+    .bar {
+      height: 100%;
+      width: 0;
+      background: #60a5fa;
+      transition: width 0.4s;
+    }
+
+    .warnings {
+      background: #3b2b13;
+      border: 1px solid #a16207;
+      border-radius: 10px;
+      padding: 15px;
+      margin-top: 20px;
+    }
+
+    .warnings h3 {
+      color: #fbbf24;
+      margin-top: 0;
+    }
+
+    .warnings ul {
+      padding-left: 20px;
+    }
+
+    .disclaimer {
+      color: #94a3b8;
+      font-size: 13px;
+      line-height: 1.7;
+      margin-top: 20px;
+    }
+
+    footer {
+      text-align: center;
+      color: #64748b;
+      padding: 25px;
+      font-size: 13px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <h1>🛡️ ScamShield AI</h1>
+    <p>AI-powered SMS, Email & Fake Job Scam Detection</p>
+  </header>
+
+  <main>
+
+    <section class="card">
+      <h2>Analyze a Message</h2>
+      <p>
+        Paste a suspicious SMS, email, or job offer
+        below to check for potential scam indicators.
+      </p>
+
+      <textarea
+        id="messageInput"
+        maxlength="20000"
+        placeholder="Paste your message here..."
+      ></textarea>
+
+      <button id="analyzeBtn" onclick="analyzeMessage()">
+        Analyze Message
+      </button>
+    </section>
+
+    <section id="resultCard" class="card hidden">
+
+      <h2>Analysis Result</h2>
+
+      <div id="status" class="status"></div>
+
+      <div id="score" class="score"></div>
+
+      <div class="progress">
+        <div id="scoreBar" class="bar"></div>
+      </div>
+
+      <div id="warningBox" class="warnings hidden">
+        <h3>⚠ Safety Warnings</h3>
+        <ul id="warningList"></ul>
+      </div>
+
+      <p id="disclaimer" class="disclaimer"></p>
+
+    </section>
+
+  </main>
+
+  <footer>
+    ScamShield AI | Powered by DistilBERT
+  </footer>
+
+  <script>
+
+    async function analyzeMessage() {
+
+      const input = document.getElementById("messageInput");
+      const button = document.getElementById("analyzeBtn");
+      const resultCard = document.getElementById("resultCard");
+
+      const status = document.getElementById("status");
+      const score = document.getElementById("score");
+      const scoreBar = document.getElementById("scoreBar");
+
+      const warningBox = document.getElementById("warningBox");
+      const warningList = document.getElementById("warningList");
+      const disclaimer = document.getElementById("disclaimer");
+
+      const text = input.value.trim();
+
+      if (!text) {
+        alert("Please enter a message.");
+        return;
+      }
+
+      button.disabled = true;
+      button.textContent = "Analyzing...";
+
+      resultCard.classList.add("hidden");
+      warningBox.classList.add("hidden");
+      warningList.replaceChildren();
+
+      try {
+
+        const response = await fetch("/api/predict", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ text: text })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Analysis failed.");
+        }
+
+        resultCard.classList.remove("hidden");
+
+        status.textContent = data.result;
+        status.className = "status";
+
+        if (data.result === "Potential Scam") {
+          status.classList.add("scam");
+        }
+        else if (data.result === "Suspicious - Review Required") {
+          status.classList.add("warning");
+        }
+        else {
+          status.classList.add("safe");
+        }
+
+        const probability = Number(data.scam_probability);
+        const percent = Math.max(
+          0,
+          Math.min(100, probability * 100)
+        );
+
+        score.textContent =
+          "Model scam score: " + percent.toFixed(2) + "%";
+
+        scoreBar.style.width = percent + "%";
+
+        if (data.result === "Potential Scam") {
+          scoreBar.style.background = "#f87171";
+        }
+        else if (data.result === "Suspicious - Review Required") {
+          scoreBar.style.background = "#fbbf24";
+        }
+        else {
+          scoreBar.style.background = "#4ade80";
+        }
+
+        const warnings = data.safety_warnings || [];
+
+        if (warnings.length > 0) {
+
+          warningBox.classList.remove("hidden");
+
+          warnings.forEach(function(warning) {
+
+            const li = document.createElement("li");
+            li.textContent = warning;
+
+            warningList.appendChild(li);
+
+          });
+        }
+
+        disclaimer.textContent = data.message || "";
+
+      }
+      catch (error) {
+
+        alert("Error: " + error.message);
+
+      }
+      finally {
+
+        button.disabled = false;
+        button.textContent = "Analyze Message";
+
+      }
+    }
+
+  </script>
+
+</body>
+</html>
